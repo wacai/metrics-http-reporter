@@ -63,7 +63,7 @@ public class HttpReporter extends ScheduledReporter {
             conn.setConnectTimeout(timeoutMillis);
             conn.setReadTimeout(timeoutMillis);
             conn.setRequestProperty("Content-Type", "application/json");
-            mapper.writeValue(conn.getOutputStream(),metrics);
+            mapper.writeValue(conn.getOutputStream(), metrics);
             conn.getOutputStream().close();
             return conn.getResponseCode();
         } finally {
@@ -97,6 +97,11 @@ public class HttpReporter extends ScheduledReporter {
 
         public Builder convertDurationsTo(TimeUnit durationUnit) {
             this.durationUnit = durationUnit;
+            return this;
+        }
+
+        public Builder filter(MetricFilter filter) {
+            this.filter = filter;
             return this;
         }
 
