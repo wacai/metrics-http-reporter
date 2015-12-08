@@ -10,6 +10,8 @@
 
 ```
 
+> ${version} see [tags](./tags)
+
 ## Usage
 
 ```java
