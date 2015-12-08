@@ -10,7 +10,7 @@
 
 ```
 
-> ${version} see [tags](./tags)
+> ${version} see [tags](../../tags)
 
 ## Usage
 
