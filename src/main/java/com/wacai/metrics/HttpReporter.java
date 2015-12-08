@@ -19,8 +19,56 @@ public class HttpReporter extends ScheduledReporter {
     private final int          timeoutMillis;
     private final ObjectMapper mapper;
 
+    private HttpReporter(MetricRegistry registry,
+                         URI uri,
+                         int timeoutMillis,
+                         boolean showSamples, TimeUnit rateUnit,
+                         TimeUnit durationUnit,
+                         MetricFilter filter) {
+        super(registry, "http-post-reporter", filter, rateUnit, durationUnit);
+        this.uri = uri;
+        this.timeoutMillis = timeoutMillis;
+        final MetricsModule module = new MetricsModule(rateUnit, durationUnit, showSamples, filter);
+        mapper = new ObjectMapper().registerModule(module);
+
+    }
+
     public static Builder forRegistry(MetricRegistry registry, URI uri) {
         return new Builder(registry, uri);
+    }
+
+    @Override
+    public void report(SortedMap<String, Gauge> gauges,
+                       SortedMap<String, Counter> counters,
+                       SortedMap<String, Histogram> histograms,
+                       SortedMap<String, Meter> meters,
+                       SortedMap<String, Timer> timers) {
+
+        try {
+            final Metrics metrics = new Metrics(gauges, counters, histograms, meters, timers);
+            final HttpURLConnection conn = (HttpURLConnection) uri.toURL().openConnection();
+            final int code = post(metrics, conn);
+            if (code != 200) LOG.warn("response message: {}", conn.getResponseMessage());
+        } catch (IOException e) {
+            e.printStackTrace();
+            LOG.warn("reporting", e);
+        }
+
+    }
+
+    private int post(Metrics metrics, HttpURLConnection conn) throws IOException {
+        try {
+            conn.setDoOutput(true);
+            conn.setRequestMethod("POST");
+            conn.setConnectTimeout(timeoutMillis);
+            conn.setReadTimeout(timeoutMillis);
+            conn.setRequestProperty("Content-Type", "application/json");
+            mapper.writeValue(conn.getOutputStream(),metrics);
+            conn.getOutputStream().close();
+            return conn.getResponseCode();
+        } finally {
+            conn.disconnect();
+        }
     }
 
     public static class Builder {
@@ -65,50 +113,6 @@ public class HttpReporter extends ScheduledReporter {
 
         public HttpReporter build() {
             return new HttpReporter(registry, uri, timeoutMillis, showSamples, rateUnit, durationUnit, filter);
-        }
-    }
-
-    private HttpReporter(MetricRegistry registry,
-                         URI uri,
-                         int timeoutMillis,
-                         boolean showSamples, TimeUnit rateUnit,
-                         TimeUnit durationUnit,
-                         MetricFilter filter) {
-        super(registry, "http-post-reporter", filter, rateUnit, durationUnit);
-        this.uri = uri;
-        this.timeoutMillis = timeoutMillis;
-        final MetricsModule module = new MetricsModule(rateUnit, durationUnit, showSamples, filter);
-        mapper = new ObjectMapper().registerModule(module);
-
-    }
-
-    @Override
-    public void report(SortedMap<String, Gauge> gauges,
-                       SortedMap<String, Counter> counters,
-                       SortedMap<String, Histogram> histograms,
-                       SortedMap<String, Meter> meters,
-                       SortedMap<String, Timer> timers) {
-
-        try {
-            final Metrics metrics = new Metrics(gauges, counters, histograms, meters, timers);
-            final HttpURLConnection conn = (HttpURLConnection) uri.toURL().openConnection();
-            post(metrics, conn);
-        } catch (IOException e) {
-            LOG.warn("reporting", e);
-        }
-
-    }
-
-    private void post(Metrics metrics, HttpURLConnection conn) throws IOException {
-        try {
-            conn.setRequestMethod("POST");
-            conn.setConnectTimeout(timeoutMillis);
-            conn.setReadTimeout(timeoutMillis);
-            conn.setRequestProperty("Content-Type", "application/json");
-            mapper.writeValue(conn.getOutputStream(),metrics);
-            conn.getOutputStream().close();
-        } finally {
-            conn.disconnect();
         }
     }
 
