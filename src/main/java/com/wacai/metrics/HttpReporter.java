@@ -4,7 +4,6 @@ import com.codahale.metrics.*;
 import com.codahale.metrics.json.MetricsModule;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sun.xml.internal.ws.config.metro.dev.FeatureReader;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
