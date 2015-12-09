@@ -10,7 +10,6 @@
 
 ```
 
-> ${version} see [tags](../../tags)
 
 ## Usage
 
@@ -25,3 +24,13 @@ report.start(1, TimeUnit.SECONDS);
 report.stop();
 ```
 
+## Change Log
+
+### 0.0.2
+
+* Remove dependency of slf4j
+* Json message ignore null field
+
+### 0.0.1
+
+* POST metrics message to a dashboard web server

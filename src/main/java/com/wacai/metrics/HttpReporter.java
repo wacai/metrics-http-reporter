@@ -2,36 +2,23 @@ package com.wacai.metrics;
 
 import com.codahale.metrics.*;
 import com.codahale.metrics.json.MetricsModule;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.sun.xml.internal.ws.config.metro.dev.FeatureReader;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 public class HttpReporter extends ScheduledReporter {
-    private static final Logger LOG = LoggerFactory.getLogger(HttpReporter.class);
 
-    private final URI          uri;
-    private final int          timeoutMillis;
-    private final ObjectMapper mapper;
-
-    private HttpReporter(MetricRegistry registry,
-                         URI uri,
-                         int timeoutMillis,
-                         boolean showSamples, TimeUnit rateUnit,
-                         TimeUnit durationUnit,
-                         MetricFilter filter) {
-        super(registry, "http-post-reporter", filter, rateUnit, durationUnit);
-        this.uri = uri;
-        this.timeoutMillis = timeoutMillis;
-        final MetricsModule module = new MetricsModule(rateUnit, durationUnit, showSamples, filter);
-        mapper = new ObjectMapper().registerModule(module);
-
-    }
+    private final URI              uri;
+    private final int              timeoutMillis;
+    private final Consumer<Object> callback;
+    private final ObjectMapper     mapper;
 
     public static Builder forRegistry(MetricRegistry registry, URI uri) {
         return new Builder(registry, uri);
@@ -45,25 +32,39 @@ public class HttpReporter extends ScheduledReporter {
                        SortedMap<String, Timer> timers) {
 
         try {
-            final Metrics metrics = new Metrics(gauges, counters, histograms, meters, timers);
+            final MetricMessage metricMessage = new MetricMessage(gauges, counters, histograms, meters, timers);
             final HttpURLConnection conn = (HttpURLConnection) uri.toURL().openConnection();
-            final int code = post(metrics, conn);
-            if (code != 200) LOG.warn("response message: {}", conn.getResponseMessage());
+            post(metricMessage, conn);
+            callback.accept(conn.getResponseMessage());
         } catch (IOException e) {
-            e.printStackTrace();
-            LOG.warn("reporting", e);
+            callback.accept(e);
         }
 
     }
 
-    private int post(Metrics metrics, HttpURLConnection conn) throws IOException {
+    private HttpReporter(MetricRegistry registry,
+                         URI uri,
+                         int timeoutMillis,
+                         boolean showSamples, TimeUnit rateUnit,
+                         TimeUnit durationUnit,
+                         MetricFilter filter,
+                         Consumer<Object> callback) {
+        super(registry, "http-post-reporter", filter, rateUnit, durationUnit);
+        this.uri = uri;
+        this.timeoutMillis = timeoutMillis;
+        this.callback = callback;
+        final MetricsModule module = new MetricsModule(rateUnit, durationUnit, showSamples, filter);
+        mapper = new ObjectMapper().registerModule(module);
+    }
+
+    private int post(MetricMessage metricMessage, HttpURLConnection conn) throws IOException {
         try {
             conn.setDoOutput(true);
             conn.setRequestMethod("POST");
             conn.setConnectTimeout(timeoutMillis);
             conn.setReadTimeout(timeoutMillis);
             conn.setRequestProperty("Content-Type", "application/json");
-            mapper.writeValue(conn.getOutputStream(), metrics);
+            mapper.writeValue(conn.getOutputStream(), metricMessage);
             conn.getOutputStream().close();
             return conn.getResponseCode();
         } finally {
@@ -72,13 +73,14 @@ public class HttpReporter extends ScheduledReporter {
     }
 
     public static class Builder {
-        private final MetricRegistry registry;
-        private final URI            uri;
-        private       int            timeoutMillis;
-        private       MetricFilter   filter;
-        private       TimeUnit       rateUnit;
-        private       TimeUnit       durationUnit;
-        private       boolean        showSamples;
+        private final MetricRegistry   registry;
+        private final URI              uri;
+        private       int              timeoutMillis;
+        private       MetricFilter     filter;
+        private       TimeUnit         rateUnit;
+        private       TimeUnit         durationUnit;
+        private       boolean          showSamples;
+        private       Consumer<Object> callback;
 
         private Builder(MetricRegistry registry, URI uri) {
             this.registry = registry;
@@ -88,6 +90,7 @@ public class HttpReporter extends ScheduledReporter {
             this.durationUnit = TimeUnit.MILLISECONDS;
             this.showSamples = false;
             this.filter = MetricFilter.ALL;
+            this.callback = responseMessageOrException -> {};
         }
 
         public Builder convertRatesTo(TimeUnit rateUnit) {
@@ -115,21 +118,28 @@ public class HttpReporter extends ScheduledReporter {
             return this;
         }
 
+        public Builder callback(Consumer<Object> value) {
+            this.callback = value;
+            return this;
+        }
+
 
         public HttpReporter build() {
-            return new HttpReporter(registry, uri, timeoutMillis, showSamples, rateUnit, durationUnit, filter);
+            return new HttpReporter(registry, uri, timeoutMillis, showSamples, rateUnit, durationUnit, filter, callback);
         }
     }
 
-    private static class Metrics {
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    static class MetricMessage {
         private final SortedMap<String, Gauge>     gauges;
         private final SortedMap<String, Counter>   counters;
         private final SortedMap<String, Histogram> histograms;
         private final SortedMap<String, Meter>     meters;
         private final SortedMap<String, Timer>     timers;
 
-        public Metrics(SortedMap<String, Gauge> gauges, SortedMap<String, Counter> counters,
-                       SortedMap<String, Histogram> histograms, SortedMap<String, Meter> meters, SortedMap<String, Timer> timers) {
+        public MetricMessage(SortedMap<String, Gauge> gauges, SortedMap<String, Counter> counters,
+                             SortedMap<String, Histogram> histograms, SortedMap<String, Meter> meters, SortedMap<String, Timer> timers) {
             this.gauges = gauges;
             this.counters = counters;
             this.histograms = histograms;
