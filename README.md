@@ -26,11 +26,15 @@ report.stop();
 
 ## Change Log
 
+### 0.0.3
+
+* Add timestamp.
+
 ### 0.0.2
 
-* Remove dependency of slf4j
-* Json message ignore null field
+* Remove dependency of slf4j;
+* Json message ignore null field.
 
 ### 0.0.1
 
-* POST metrics message to a dashboard web server
+* POST metrics message to a dashboard web server.

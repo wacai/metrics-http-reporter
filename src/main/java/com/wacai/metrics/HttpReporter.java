@@ -19,6 +19,21 @@ public class HttpReporter extends ScheduledReporter {
     private final Consumer<Object> callback;
     private final ObjectMapper     mapper;
 
+    private HttpReporter(MetricRegistry registry,
+                         URI uri,
+                         int timeoutMillis,
+                         boolean showSamples, TimeUnit rateUnit,
+                         TimeUnit durationUnit,
+                         MetricFilter filter,
+                         Consumer<Object> callback) {
+        super(registry, "http-post-reporter", filter, rateUnit, durationUnit);
+        this.uri = uri;
+        this.timeoutMillis = timeoutMillis;
+        this.callback = callback;
+        final MetricsModule module = new MetricsModule(rateUnit, durationUnit, showSamples, filter);
+        mapper = new ObjectMapper().registerModule(module);
+    }
+
     public static Builder forRegistry(MetricRegistry registry, URI uri) {
         return new Builder(registry, uri);
     }
@@ -39,21 +54,6 @@ public class HttpReporter extends ScheduledReporter {
             callback.accept(e);
         }
 
-    }
-
-    private HttpReporter(MetricRegistry registry,
-                         URI uri,
-                         int timeoutMillis,
-                         boolean showSamples, TimeUnit rateUnit,
-                         TimeUnit durationUnit,
-                         MetricFilter filter,
-                         Consumer<Object> callback) {
-        super(registry, "http-post-reporter", filter, rateUnit, durationUnit);
-        this.uri = uri;
-        this.timeoutMillis = timeoutMillis;
-        this.callback = callback;
-        final MetricsModule module = new MetricsModule(rateUnit, durationUnit, showSamples, filter);
-        mapper = new ObjectMapper().registerModule(module);
     }
 
     private int post(MetricMessage metricMessage, HttpURLConnection conn) throws IOException {
@@ -131,6 +131,7 @@ public class HttpReporter extends ScheduledReporter {
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     static class MetricMessage {
+        private final long                         timestamp;
         private final SortedMap<String, Gauge>     gauges;
         private final SortedMap<String, Counter>   counters;
         private final SortedMap<String, Histogram> histograms;
@@ -144,6 +145,7 @@ public class HttpReporter extends ScheduledReporter {
             this.histograms = histograms;
             this.meters = meters;
             this.timers = timers;
+            this.timestamp = System.currentTimeMillis();
         }
 
         public SortedMap<String, Gauge> getGauges() {
@@ -164,6 +166,10 @@ public class HttpReporter extends ScheduledReporter {
 
         public SortedMap<String, Timer> getTimers() {
             return timers;
+        }
+
+        public long getTimestamp() {
+            return timestamp;
         }
     }
 }

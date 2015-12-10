@@ -3,11 +3,9 @@ package com.wacai.metrics;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.github.dreamhead.moco.HttpServer;
-import org.junit.Assert;
 import org.junit.Test;
 
 import java.net.URI;
-import java.util.Collections;
 import java.util.TreeMap;
 
 import static com.github.dreamhead.moco.Moco.*;
@@ -26,8 +24,7 @@ public class HttpReporterTest {
     public void should_report_metrics() throws Exception {
         final HttpServer server = httpServer(12306, log());
 
-        String json = "{\"meters\":{\"test\":{\"count\":1,\"m15_rate\":3.0,\"m1_rate\":5.0,\"m5_rate\":4.0,\"mean_rate\":2.0,\"units\":\"events/second\"}}}";
-        server.post(and(by(json), eq(header("Content-Type"), "application/json"))).response("OK");
+        server.post(and(eq(jsonPath("$.meters.test.count"), "1"), eq(header("Content-Type"), "application/json"))).response("OK");
 
         running(server, () -> {
             final MetricRegistry registry = new MetricRegistry();
