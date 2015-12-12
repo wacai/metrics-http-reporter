@@ -24,6 +24,27 @@ report.start(1, TimeUnit.SECONDS);
 report.stop();
 ```
 
+## Metric Message Format
+
+```json
+{
+  "timestamp":1449918125458,
+  "meters":
+    {
+      "test":
+        {
+          "count":1,
+          "m15_rate":3.0,
+          "m1_rate":5.0,
+          "m5_rate":4.0,
+          "mean_rate":2.0,
+          "units":"events/second"
+        }
+    },
+  "startTime":1449918124182
+}
+```
+
 ## Change Log
 
 ### 0.0.3

@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.util.SortedMap;
@@ -131,6 +132,8 @@ public class HttpReporter extends ScheduledReporter {
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     static class MetricMessage {
+        private static final long START_TIME = ManagementFactory.getRuntimeMXBean().getStartTime();
+
         private final long                         timestamp;
         private final SortedMap<String, Gauge>     gauges;
         private final SortedMap<String, Counter>   counters;
@@ -170,6 +173,10 @@ public class HttpReporter extends ScheduledReporter {
 
         public long getTimestamp() {
             return timestamp;
+        }
+
+        public long getStartTime() {
+            return START_TIME;
         }
     }
 }

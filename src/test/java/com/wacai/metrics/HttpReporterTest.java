@@ -5,6 +5,7 @@ import com.codahale.metrics.MetricRegistry;
 import com.github.dreamhead.moco.HttpServer;
 import org.junit.Test;
 
+import java.lang.management.ManagementFactory;
 import java.net.URI;
 import java.util.TreeMap;
 
@@ -24,13 +25,16 @@ public class HttpReporterTest {
     public void should_report_metrics() throws Exception {
         final HttpServer server = httpServer(12306, log());
 
-        server.post(and(eq(jsonPath("$.meters.test.count"), "1"), eq(header("Content-Type"), "application/json"))).response("OK");
+        server.post(and(
+                eq(jsonPath("$.meters.test.count"), "1"),
+                eq(jsonPath("$.startTime"), ManagementFactory.getRuntimeMXBean().getStartTime() + ""),
+                eq(header("Content-Type"), "application/json"))).response("OK");
 
         running(server, () -> {
             final MetricRegistry registry = new MetricRegistry();
             final URI uri = URI.create("http://localhost:12306/");
             final HttpReporter reporter = HttpReporter.forRegistry(registry, uri)
-                                                      .callback(msgOrException -> assertThat(msgOrException,is("OK")))
+                                                      .callback(msgOrException -> assertThat(msgOrException, is("OK")))
                                                       .build();
 
             final Meter meter = mock(Meter.class);
