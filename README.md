@@ -47,6 +47,10 @@ report.stop();
 
 ## Change Log
 
+### 0.0.4
+
+* Add jvm start time.
+
 ### 0.0.3
 
 * Add timestamp.
