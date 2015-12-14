@@ -1,5 +1,6 @@
 package com.wacai.metrics;
 
+import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.github.dreamhead.moco.HttpServer;
@@ -7,6 +8,7 @@ import org.junit.Test;
 
 import java.lang.management.ManagementFactory;
 import java.net.URI;
+import java.util.SortedMap;
 import java.util.TreeMap;
 
 import static com.github.dreamhead.moco.Moco.*;
@@ -44,10 +46,15 @@ public class HttpReporterTest {
             when(meter.getFiveMinuteRate()).thenReturn(4.0);
             when(meter.getFifteenMinuteRate()).thenReturn(3.0);
 
-            final TreeMap<String, Meter> meters = new TreeMap<>();
-            meters.put("test", meter);
-            reporter.report(null, null, null, meters, null);
+            reporter.report(singleSortedMap("cpu", (Gauge<Double>) () -> 0.9),
+                            null, null, singleSortedMap("test", meter), null);
 
         });
+    }
+
+    private <K, V> SortedMap<K, V> singleSortedMap(K key, V value) {
+        final TreeMap<K, V> map = new TreeMap<>();
+        map.put(key, value);
+        return map;
     }
 }
