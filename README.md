@@ -41,7 +41,7 @@ report.stop();
     }
   },
   "counters": {
-    "accept.success": {
+    "accept.failure": {
       "count": 0
     }
   },
@@ -62,7 +62,7 @@ report.stop();
 ```
 
 1. No timers and histograms;
-1. Every Meter **MUST** have an success Counter with it.
+1. Every Meter **MUST** have an failure Counter with it.
 
 ## Change Log
 
