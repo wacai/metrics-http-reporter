@@ -1,7 +1,11 @@
 ## Install
 
-```xml
+```
+> mvn clean install
+```
 
+
+```xml
 <dependency>
     <groupId>com.wacai</groupId>
     <artifactId>metrics-http-reporter</artifactId>
@@ -23,10 +27,6 @@ report.start(1, TimeUnit.SECONDS);
 
 report.stop();
 ```
-
-### Example
-
-<http://git.caimi-inc.com/jushi/perfmock/blob/master/src/main/java/com/wacai/perfmock/Main.java>
 
 ## Metric Message Protocol
 
